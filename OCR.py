@@ -1,6 +1,7 @@
 import cv2 as cv
 import matplotlib.pyplot as plt
-import numpy as np
+
+# import numpy as np
 
 image_path1 = "images/dataset/Book4/Book4_00000207_B.png"
 image_path2 = "images/dataset/Book6/Book6_00000029_B.PNG"
