@@ -1,0 +1,16 @@
+import numpy as np
+
+# arr = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], np.int16)
+# print(arr[0, 0])
+# print(arr.shape)
+# print(arr.ndim)
+# print(arr.size)
+# print(arr.dtype)
+nines = np.full((2, 3, 4), 9)
+print(nines)
+ones = np.ones((5, 6, 7))
+print(ones)
+empty = np.empty((2, 2, 2))
+print(empty)
+arrange = np.arange(0, 105, 5)
+print(arrange)
