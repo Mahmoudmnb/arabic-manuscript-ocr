@@ -2,15 +2,15 @@
 
 An academic deep-learning project for converting images of **Arabic handwritten manuscript lines** into digital Arabic text.
 
-The project explores the use of computer vision and deep learning to help digitize old and damaged Arabic manuscripts and make their content easier to search, edit, and preserve.
+The project explores computer vision and deep learning techniques for helping digitize old and damaged Arabic manuscripts and making their content easier to search, edit, and preserve.
 
 ---
 
 ## 🎯 Project Goal
 
-The original project aimed to develop an intelligent system for processing and digitizing old Arabic manuscripts.
+The project aimed to develop an intelligent system for processing and digitizing old Arabic manuscripts.
 
-The main challenge is that historical manuscripts can contain:
+Historical manuscripts can contain challenging visual conditions such as:
 
 - Degraded or damaged pages
 - Uneven backgrounds
@@ -19,53 +19,60 @@ The main challenge is that historical manuscripts can contain:
 - Different handwriting styles
 - Closely spaced or overlapping words
 
-Rather than relying only on traditional image-processing techniques, the project investigated deep-learning approaches capable of learning visual and textual representations directly from data.
+Several image-processing approaches were investigated before moving toward a deep-learning image-to-text system.
 
 ---
 
-## 🧠 Approach
+## 🔬 Development Approach
 
-The project went through several stages before reaching the final image-to-text approach.
+The project went through several stages during development.
 
 ### 1. Traditional Image Processing
 
-Several classical techniques were investigated for improving manuscript images and extracting useful structures:
+Several classical image-processing techniques were investigated for improving manuscript images and extracting useful information:
 
 - Static thresholding
 - Dynamic thresholding
 - Otsu binarization
 - Canny edge detection
 - Image filters
-- Hough transforms
-- Mexican Hat filtering
+- Hough transform
+- Mexican Hat filter
 - SIFT
 - FAST
 - DocEnTR
 
-These approaches were useful for experimentation, but degraded manuscript images presented difficult cases where separating the text from the background was unreliable.
+These approaches were useful for experimentation, but old manuscript images introduced difficult backgrounds, stains, faded ink, and other variations that made reliable text extraction challenging.
 
-### 2. Word Detection
+### 2. Contour-Based Word Extraction
 
 A contour-based approach was also investigated to extract individual words from manuscript images.
 
-This approach was abandoned because:
+This approach was not reliable because:
 
 - Words could be very close to each other
 - Some words could overlap
-- Some words could contain or touch other visual regions
-- Contour-based segmentation was not reliable across different manuscripts
+- Different regions could touch each other
+- Contours were not consistently suitable for separating manuscript words
 
-### 3. Deep Learning
+Because of these limitations, the project moved toward a learned image-to-text approach.
 
-The project then moved toward an image-to-text generation approach.
+### 3. Deep Learning Image-to-Text
 
-The main idea was to allow a neural network to learn the relationship between the visual information in a manuscript image and its corresponding Arabic text.
+The project then explored an image-to-text generation system capable of learning the relationship between manuscript images and their corresponding Arabic text.
+
+The main architecture combines:
+
+- A CNN-based visual feature extractor
+- A Transformer-based decoder
+- Self-attention
+- Cross-attention between text generation and visual features
 
 ---
 
 ## 🏗️ Model Architecture
 
-The developed system combines a CNN-based image feature extractor with a Transformer-based text generation component.
+The developed system follows an image-to-text architecture:
 
 ```mermaid
 flowchart LR
