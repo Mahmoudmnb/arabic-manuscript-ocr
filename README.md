@@ -21,6 +21,12 @@ Historical manuscripts can contain challenging visual conditions such as:
 
 Several image-processing approaches were investigated before moving toward a deep-learning image-to-text system.
 
+### From Manuscript Image to Digital Text
+
+<p align="center">
+  <img src="docs/images/01-input-to-text.png" alt="Arabic manuscript image to digital text example" width="95%">
+</p>
+
 ---
 
 ## 🔬 Development Approach
@@ -72,23 +78,11 @@ The main architecture combines:
 
 ## 🏗️ Model Architecture
 
-The developed system follows an image-to-text architecture:
+The developed system follows an image-to-text architecture.
 
-```mermaid
-flowchart LR
-    A[Arabic Manuscript Line Image] --> B[Image Preprocessing]
-    B --> C[CNN Feature Extractor]
-    C --> D[Visual Feature Representation]
-    D --> E[Transformer Decoder]
-
-    E --> F[Self-Attention]
-    E --> G[Cross-Attention]
-
-    F --> H[Arabic Text Tokens]
-    G --> H
-
-    H --> I[Generated Arabic Text]
-```
+<p align="center">
+  <img src="docs/images/03-model-architecture.png" alt="Arabic Manuscript OCR model architecture" width="95%">
+</p>
 
 ### Image Feature Extraction
 
@@ -124,12 +118,18 @@ Because a suitable ready-to-use labeled dataset for this specific task was not a
 
 The project focused on **manuscript line images** rather than complete pages.
 
-The dataset preparation included:
+The project aimed to collect approximately:
 
-- Approximately **20,000** manuscript line images as a collection target
-- Approximately **20,000 additional synthetic manuscript line images**
-- Image preprocessing
-- Data augmentation
+- **20,000 manuscript line images**
+- **20,000 additional synthetic manuscript line images**
+
+The dataset was then subjected to preprocessing and augmentation before training.
+
+### Dataset Examples
+
+<p align="center">
+  <img src="docs/images/02-dataset-examples.png" alt="Collected and synthetic Arabic manuscript dataset examples" width="95%">
+</p>
 
 The resulting image representation used dimensions of approximately:
 
@@ -180,6 +180,10 @@ This experiment showed a substantial improvement in validation performance compa
 The implementation also includes attention visualization to inspect which regions of the manuscript image contribute to the generation of output tokens.
 
 This provides an interpretable view of the relationship between the input image and generated text.
+
+<p align="center">
+  <img src="docs/images/04-attention-visualization.png" alt="Attention visualization for Arabic manuscript image-to-text generation" width="95%">
+</p>
 
 The process can be viewed conceptually as:
 
@@ -255,10 +259,17 @@ Possible directions for improving the system include:
 
 The repository contains experimental implementations developed during different stages of the project.
 
-Some of the main files include:
+Some of the main files and directories include:
 
 ```text
 arabic-manuscript-ocr/
+│
+├── docs/
+│   └── images/
+│       ├── 01-input-to-text.png
+│       ├── 02-dataset-examples.png
+│       ├── 03-model-architecture.png
+│       └── 04-attention-visualization.png
 │
 ├── images/
 │
