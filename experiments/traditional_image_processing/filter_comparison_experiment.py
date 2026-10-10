@@ -1,47 +1,55 @@
-from scipy import ndimage  # Use SciPy for LoG
-import cv2 as cv
-import numpy as np
-import matplotlib.pyplot as plt
+"""
+Combined image-filter comparison experiment.
 
-image_path1 = "images/dataset/Book4/Book4_00000207_B.png"
-image_path2 = "images/dataset/Book6/Book6_00000029_B.PNG"
-spot_with_missing_letters = "images/dataset/Book1/Book1_00000022_B.PNG"
-spot_with_missing_letters1 = "images/dataset/Book1/Book1_00000126_B.PNG"
-missing_letters = "images/dataset/Book5/Book5_00000075_B.PNG"
-missing_letters1 = "images/dataset/Book3/Book3_00000183_B.PNG"
-missing_letters2 = "images/dataset/Book1/Book1_00000182_A.PNG"
-with_shadow = "images/dataset/Book3/Book3_00000183_A.PNG"
-with_shadow1 = "images/dataset/Book2/Book2_000122_A.PNG"
-bold_letters = "images/dataset/Book7/Book7_00000336_B.png"
+This standalone script preserves several early OpenCV/SciPy experiments:
+Hough line detection, Hanning-window visualization, morphological
+top-hat/black-hat filtering, and Laplacian-of-Gaussian filtering.
+"""
+
+import cv2 as cv
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy import ndimage
+
+SAMPLE_BOOK4_PAGE = "images/dataset/Book4/Book4_00000207_B.png"
+SAMPLE_BOOK6_PAGE = "images/dataset/Book6/Book6_00000029_B.PNG"
+SPOT_WITH_MISSING_LETTERS = "images/dataset/Book1/Book1_00000022_B.PNG"
+SPOT_WITH_MISSING_LETTERS_ALT = "images/dataset/Book1/Book1_00000126_B.PNG"
+MISSING_LETTERS_PAGE = "images/dataset/Book5/Book5_00000075_B.PNG"
+MISSING_LETTERS_PAGE_ALT = "images/dataset/Book3/Book3_00000183_B.PNG"
+MISSING_LETTERS_PAGE_ALT_2 = "images/dataset/Book1/Book1_00000182_A.PNG"
+PAGE_WITH_SHADOW = "images/dataset/Book3/Book3_00000183_A.PNG"
+PAGE_WITH_SHADOW_ALT = "images/dataset/Book2/Book2_000122_A.PNG"
+BOLD_LETTERS_PAGE = "images/dataset/Book7/Book7_00000336_B.png"
 
 # Load image, convert to grayscale, and find edges (Hough often works on edges)
-originalImage = cv.imread(image_path1)
+original_image = cv.imread(SAMPLE_BOOK4_PAGE)
 
 
-if originalImage is None:
+if original_image is None:
     print("Error: Image not loaded. Check the path.")
     exit()
 
 
 # ? HoughLines
 
-gray = cv.cvtColor(originalImage, cv.COLOR_BGR2GRAY)
+gray = cv.cvtColor(original_image, cv.COLOR_BGR2GRAY)
 # Use Canny to get edges first
 edges = cv.Canny(gray, 50, 150, apertureSize=3)
 
 # Perform Hough Line Transform (Probabilistic version is often more efficient)
 # arguments: edge map, rho resolution, theta resolution, threshold (min votes)
-lines = cv.HoughLinesP(edges, 1, np.pi / 180,
-                       threshold=100, minLineLength=50, maxLineGap=10)
+lines = cv.HoughLinesP(
+    edges, 1, np.pi / 180, threshold=100, minLineLength=50, maxLineGap=10
+)
 
 
 # Draw the detected lines on the original image
-line_image = originalImage.copy()
+line_image = original_image.copy()
 if lines is not None:
     for line in lines:
         x1, y1, x2, y2 = line[0]
-        cv.line(line_image, (x1, y1), (x2, y2),
-                (0, 0, 255), 2)  # Draw red lines
+        cv.line(line_image, (x1, y1), (x2, y2), (0, 0, 255), 2)
 
 # Display the result (using matplotlib for inline display if needed)
 # plt.figure(figsize=(10, 5))
@@ -52,9 +60,9 @@ if lines is not None:
 # plt.show()
 
 # Or use cv.imshow if not in a notebook environment
-cv.imshow('Original', originalImage)
-cv.imshow('Edges', edges)
-cv.imshow('Hough Lines', line_image)
+cv.imshow("Original", original_image)
+cv.imshow("Edges", edges)
+cv.imshow("Hough Lines", line_image)
 
 
 # # ______________________________________________________________
@@ -78,9 +86,10 @@ hanning_kernel = hanning_window_2d / np.sum(hanning_window_2d)
 
 # Plot the windows
 plt.figure(figsize=(10, 5))
-plt.subplot(121), plt.plot(hanning_window_1d), plt.title('1D Hanning Window')
-plt.subplot(122), plt.imshow(hanning_window_2d,
-                             cmap='viridis'), plt.title('2D Hanning Window')
+plt.subplot(121), plt.plot(hanning_window_1d), plt.title("1D Hanning Window")
+plt.subplot(122), plt.imshow(hanning_window_2d, cmap="viridis"), plt.title(
+    "2D Hanning Window"
+)
 # plt.show()
 
 print("Hanning window is mainly for signal processing (FFT) or filter design.")
@@ -92,7 +101,7 @@ print("Direct spatial blurring usually uses Gaussian or Mean filters.")
 
 # Load image and convert to grayscale
 # Use an image with small light/dark details
-image = cv.imread(image_path1)
+image = cv.imread(SAMPLE_BOOK4_PAGE)
 if image is None:
     print("Error: Image not loaded. Check the path.")
     exit()
@@ -122,9 +131,9 @@ _, blackhat = cv.threshold(blackhat, 150, 255, cv.THRESH_BINARY_INV)
 # # plt.show()
 
 # Or use cv.imshow
-cv.imshow('Grayscale', gray)
-cv.imshow('Top Hat', tophat)
-cv.imshow('Black Hat', blackhat)
+cv.imshow("Grayscale", gray)
+cv.imshow("Top Hat", tophat)
+cv.imshow("Black Hat", blackhat)
 # cv.waitKey(0)
 # cv.destroyAllWindows()
 # # _________________________________________________________________________
@@ -134,13 +143,12 @@ cv.imshow('Black Hat', blackhat)
 
 
 # Load image and convert to grayscale
-image = cv.imread(image_path1)  # Use a suitable image
+image = cv.imread(SAMPLE_BOOK4_PAGE)
 if image is None:
     print("Error: Image not loaded. Check the path.")
     exit()
 
-gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY).astype(
-    float)  # Convert to float for filtering
+gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY).astype(float)
 
 # Apply Laplacian of Gaussian (Mexican Hat)
 # sigma controls the size of the 'hat' (scale of features)

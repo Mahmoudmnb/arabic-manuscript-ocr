@@ -1,3 +1,18 @@
+"""
+Notebook-exported deep-learning experiment for Arabic manuscript OCR.
+
+The script preserves the original image-to-text workflow: dataset loading,
+image preprocessing, augmentation, CNN feature extraction, Transformer decoder
+training, inference, and attention visualization.
+
+Several paths point to Google Drive because the original experiment was run in
+Colab. They are intentionally kept as-is to preserve the project setup.
+"""
+
+# ---------------------------------------------------------------------------
+# Notebook provenance and setup notes
+# ---------------------------------------------------------------------------
+
 # %% [markdown]
 # ##### Copyright 2018 The TensorFlow Authors.
 # 
@@ -55,7 +70,6 @@
 # This tutorial uses lots of imports, mostly for loading the dataset(s).
 
 # %% [markdown]
-# #@title
 # import concurrent.futures
 # import collections
 # import dataclasses
@@ -93,6 +107,10 @@
 #  <button type="button" class="button-red button expand-control">Toggle section</button>
 # 
 
+# ---------------------------------------------------------------------------
+# Imports
+# ---------------------------------------------------------------------------
+
 import collections
 # %%
 # @title
@@ -107,6 +125,7 @@ import pathlib
 import random
 import re
 import string
+import subprocess
 import time
 import urllib.request
 
@@ -126,10 +145,19 @@ from PIL import Image
 from tensorflow.keras.applications import EfficientNetB0
 from tensorflow.keras.models import Model, load_model
 
+# ---------------------------------------------------------------------------
+# Google Colab setup
+# ---------------------------------------------------------------------------
+
 drive.mount("/content/drive")
 
 # %%
-!unrar x -y "drive/MyDrive/mnb/images.rar" "output_folder/"
+# Notebook-exported replacement for:
+# !unrar x -y "drive/MyDrive/mnb/images.rar" "output_folder/"
+subprocess.run(
+    ["unrar", "x", "-y", "drive/MyDrive/mnb/images.rar", "output_folder/"],
+    check=True,
+)
 
 # %%
 # path = pathlib.Path('drive')
@@ -144,6 +172,10 @@ drive.mount("/content/drive")
 #   for a,b in train_captions:
 #     file.write(a+'\n')
 
+# ---------------------------------------------------------------------------
+# Configuration
+# ---------------------------------------------------------------------------
+
 # %%
 batch_size = 32
 IMAGE_SHAPE = (70, 800, 3)
@@ -157,6 +189,7 @@ height, width = 70, 800
 
 # %%
 def load_dataset():
+    """Load image paths and Arabic labels into train/test TensorFlow datasets."""
     path = pathlib.Path("drive")
     captions = (path / "MyDrive/mnb/labels.token.txt").read_text().splitlines()
     captions = (line.split("    ") for line in captions)
@@ -196,10 +229,6 @@ train_raw, test_raw = load_dataset()
 # %% [markdown]
 # The Flickr8k is a good choice because it contains 5-captions per image, more data for a smaller download.
 # 
-# > Add blockquote
-# 
-# 
-
 # %% [markdown]
 # choose = 'flickr8k'
 # 
@@ -207,6 +236,10 @@ train_raw, test_raw = load_dataset()
 #   train_raw, test_raw = flickr8k()
 # else:
 #   train_raw, test_raw = conceptual_captions(num_train=10000, num_val=5000)
+
+# ---------------------------------------------------------------------------
+# Dataset loading
+# ---------------------------------------------------------------------------
 
 # %% [markdown]
 # The loaders for both datasets above return `tf.data.Dataset`s containing `(image_path, captions)` pairs. The Flickr8k dataset contains 5 captions per image, while Conceptual Captions has 1:
@@ -221,6 +254,10 @@ for ex_path, ex_captions in train_raw.take(1):
 
 # %%
 import cv2 as cv
+
+# ---------------------------------------------------------------------------
+# Visual feature extraction
+# ---------------------------------------------------------------------------
 
 image = cv.imread("output_folder/images/line_10000.jpg")
 print(image.shape)
@@ -258,11 +295,16 @@ mobilenet.trainable = True
 # %%
 import tensorflow as tf
 
+# ---------------------------------------------------------------------------
+# Image preprocessing
+# ---------------------------------------------------------------------------
+
 TARGET_HEIGHT = 70
 TARGET_WIDTH = 800
 
 
 def get_border_mean(img):
+    """Compute the mean RGB value along the image border."""
     top = tf.reshape(img[0:1, :, :], [-1, 3])
     bottom = tf.reshape(img[-1:, :, :], [-1, 3])
     left = tf.reshape(img[:, 0:1, :], [-1, 3])
@@ -272,6 +314,7 @@ def get_border_mean(img):
 
 
 def resize_or_pad(img):
+    """Resize an image to fit the target shape, then pad with border color."""
     h = tf.shape(img)[0]
     w = tf.shape(img)[1]
 
@@ -311,6 +354,7 @@ def resize_or_pad(img):
 
 # %%
 def load_image(image_path):
+    """Read, resize/pad, and normalize a manuscript line image."""
     img = tf.io.read_file(image_path)
     img = tf.io.decode_jpeg(img, channels=3)
     img = resize_or_pad(img)
@@ -336,8 +380,13 @@ print(mobilenet(test_img_batch).shape)
 # * Tokenize all captions by mapping each word to its index in the vocabulary. All output sequences will be padded to length 50.
 # * Create word-to-index and index-to-word mappings to display results.
 
+# ---------------------------------------------------------------------------
+# Text preprocessing
+# ---------------------------------------------------------------------------
+
 # %%
 def standardize(s):
+    """Strip punctuation and add start/end tokens around each label."""
     s = tf.strings.regex_replace(s, f"[{re.escape(string.punctuation)}]", "")
     s = tf.strings.join(["[START]", s, "[END]"], separator=" ")
     return s
@@ -390,8 +439,13 @@ tf.strings.reduce_join(w, separator=" ", axis=-1).numpy()[0].decode()
 # 
 # This function will replicate the image so there are 1:1 images to captions:
 
+# ---------------------------------------------------------------------------
+# Dataset preparation
+# ---------------------------------------------------------------------------
+
 # %%
 def match_shapes(images, captions):
+    """Repeat images so each image-caption pair becomes a separate example."""
     caption_shape = einops.parse_shape(captions, "b c")
     captions = einops.rearrange(captions, "b c -> (b c)")
     images = einops.repeat(images, "b ... -> (b c) ...", c=caption_shape["c"])
@@ -415,6 +469,7 @@ print("captions:", ex_captions.shape)
 
 # %%
 def prepare_txt(imgs, txts):
+    """Tokenize text and create shifted decoder inputs and labels."""
     tokens = tokenizer(txts)
 
     input_tokens = tokens[..., :-1]
@@ -432,6 +487,7 @@ def prepare_txt(imgs, txts):
 
 # %%
 def prepare_dataset(ds, tokenizer, batch_size=batch_size, shuffle_buffer=256):
+    """Build the tf.data pipeline used for image-to-text training."""
     ds = ds.shuffle(shuffle_buffer)
     ds = ds.map(lambda path, caption: (load_image(path), caption))
     ds = ds.apply(tf.data.Dataset.ignore_errors)
@@ -470,8 +526,13 @@ test_ds.element_spec
 # %% [markdown]
 # Since the image feature extractor is not changing, and this tutorial is not using image augmentation, the image features can be cached. Same for the text tokenization. The time it takes to set up the cache is earned back on each epoch during training and validation. The code below defines two functions `save_dataset` and `load_dataset`:
 
+# ---------------------------------------------------------------------------
+# Optional feature cache
+# ---------------------------------------------------------------------------
+
 # %%
 def save_dataset(ds, save_path, image_model, tokenizer, shards=10):
+    """Cache extracted image features and tokenized captions to disk."""
     # Load the images and make batches.
     ds = (
         ds.map(lambda path, caption: (load_image(path), caption))
@@ -510,6 +571,7 @@ def save_dataset(ds, save_path, image_model, tokenizer, shards=10):
 
 
 def load_dataset(save_path, shuffle=256, cycle_length=2):
+    """Load a cached TensorFlow dataset and prepare padded batches."""
     def custom_reader_func(datasets):
         datasets = datasets.shuffle(shuffle)
         return datasets.interleave(lambda x: x, cycle_length=cycle_length)
@@ -550,6 +612,10 @@ def load_dataset(save_path, shuffle=256, cycle_length=2):
 # %%
 train_ds.element_spec
 
+# ---------------------------------------------------------------------------
+# Data augmentation
+# ---------------------------------------------------------------------------
+
 # %%
 random_rotation = tf.keras.layers.RandomRotation(0.008)
 random_zoom = tf.keras.layers.RandomZoom(0.1)
@@ -558,6 +624,7 @@ random_width = tf.keras.layers.RandomWidth(0.2)
 
 
 def color_augment(image):
+    """Apply the original random color augmentation operations."""
     # Stronger saturation change (50% to 150%)
     image = tf.image.random_saturation(image, lower=0.5, upper=1.5)
 
@@ -578,6 +645,7 @@ def color_augment(image):
 
 
 def augment_image(image):
+    """Apply the original geometric and color augmentation pipeline."""
     image = random_rotation(image)
     image = random_zoom(image)
     image = random_height(image)
@@ -589,6 +657,7 @@ def augment_image(image):
 
 # Conditional augmentation
 def maybe_augment(inputs, labels):
+    """Randomly augment images in a training batch while preserving labels."""
     (images, in_tok), out_tok = inputs, labels
 
     def apply_if_needed(img):
@@ -701,8 +770,14 @@ print(ex_labels[0].numpy())
 # 
 # Note: This implementation learns the position embeddings instead of using fixed embeddings like in the [Transformer tutorial](https://www.tensorflow.org/text/tutorials/transformer). Learning the embeddings is slightly less code, but doesn't generalize to longer sequences.
 
+# ---------------------------------------------------------------------------
+# Model components
+# ---------------------------------------------------------------------------
+
 # %%
 class SeqEmbedding(tf.keras.layers.Layer):
+    """Token and learned positional embedding layer for decoder inputs."""
+
     def __init__(self, vocab_size, max_length, depth):
         super().__init__()
         self.pos_embedding = tf.keras.layers.Embedding(
@@ -734,6 +809,8 @@ class SeqEmbedding(tf.keras.layers.Layer):
 
 # %%
 class CausalSelfAttention(tf.keras.layers.Layer):
+    """Causal self-attention block used by the Transformer decoder."""
+
     def __init__(self, **kwargs):
         super().__init__()
         self.mha = tf.keras.layers.MultiHeadAttention(**kwargs)
@@ -761,6 +838,8 @@ class CausalSelfAttention(tf.keras.layers.Layer):
 
 # %%
 class CrossAttention(tf.keras.layers.Layer):
+    """Cross-attention block that attends generated text to image features."""
+
     def __init__(self, **kwargs):
         super().__init__()
         self.mha = tf.keras.layers.MultiHeadAttention(**kwargs)
@@ -782,6 +861,8 @@ class CrossAttention(tf.keras.layers.Layer):
 
 # %%
 class FeedForward(tf.keras.layers.Layer):
+    """Position-wise feed-forward block for each decoder layer."""
+
     def __init__(self, units, dropout_rate=0.5):
         super().__init__()
         self.seq = tf.keras.Sequential(
@@ -803,6 +884,8 @@ class FeedForward(tf.keras.layers.Layer):
 
 # %%
 class DecoderLayer(tf.keras.layers.Layer):
+    """Single Transformer decoder layer with self-attention and cross-attention."""
+
     def __init__(self, units, num_heads=1, dropout_rate=0.1):
         super().__init__()
 
@@ -856,6 +939,8 @@ class DecoderLayer(tf.keras.layers.Layer):
 # %%
 # @title
 class TokenOutput(tf.keras.layers.Layer):
+    """Output projection layer with token-frequency bias initialization."""
+
     def __init__(self, tokenizer, banned_tokens=("", "[UNK]", "[START]"), **kwargs):
         super().__init__()
 
@@ -899,7 +984,6 @@ class TokenOutput(tf.keras.layers.Layer):
 
     def call(self, x):
         x = self.dense(x)
-        # TODO(b/250038731): Fix this.
         # An Add layer doesn't work because of the different shapes.
         # This clears the mask, that's okay because it prevents keras from rescaling
         # the losses.
@@ -927,6 +1011,8 @@ output_layer.adapt(train_ds.map(lambda inputs, labels: labels))
 
 # %%
 class Captioner(tf.keras.Model):
+    """Image-to-text model combining a CNN feature extractor and decoder."""
+
     @classmethod
     def add_method(cls, fun):
         setattr(cls, fun.__name__, fun)
@@ -983,26 +1069,27 @@ class Captioner(tf.keras.Model):
 # 
 
 # %%
-  @Captioner.add_method
-  def call(self, inputs):
+@Captioner.add_method
+def call(self, inputs):
+    """Run feature extraction, decoder layers, and output projection."""
     image, txt = inputs
 
     if image.shape[-1] == 3:
-      # Apply the feature-extractor, if you get an RGB image.
-      image = self.feature_extractor(image)
+        # Apply the feature-extractor, if you get an RGB image.
+        image = self.feature_extractor(image)
 
     # Flatten the feature map
 
-    image = einops.rearrange(image, 'b h w c -> b (h w) c')
+    image = einops.rearrange(image, "b h w c -> b (h w) c")
 
 
     if txt.dtype == tf.string:
-      # Apply the tokenizer if you get string inputs.
-      txt = tokenizer(txt)
+        # Apply the tokenizer if you get string inputs.
+        txt = tokenizer(txt)
     txt = self.seq_embedding(txt)
     # Look at the image
     for dec_layer in self.decoder_layers:
-      txt = dec_layer(inputs=(image, txt))
+        txt = dec_layer(inputs=(image, txt))
     txt = self.output_layer(txt)
 
     return txt
@@ -1017,6 +1104,10 @@ model = Captioner(
     num_layers=8,
     num_heads=2,
 )
+
+# ---------------------------------------------------------------------------
+# Inference
+# ---------------------------------------------------------------------------
 
 # %% [markdown]
 # ### Generate captions
@@ -1050,6 +1141,7 @@ print(image.shape)
 # %%
 @Captioner.add_method
 def simple_gen(self, image, temperature=1):
+    """Generate Arabic text autoregressively from a single image."""
     initial = self.word_to_index([["[START]"]])  # (batch, sequence)
     img_features = self.feature_extractor(image[tf.newaxis, ...])
 
@@ -1106,8 +1198,13 @@ for t in (0.0, 0.5, 1.0):
 # 
 # When calculating the mask for the loss, note the `loss < 1e8`. This term discards the artificial, impossibly high losses for the `banned_tokens`.
 
+# ---------------------------------------------------------------------------
+# Training
+# ---------------------------------------------------------------------------
+
 # %%
 def masked_loss(labels, preds):
+    """Sparse cross-entropy loss masked over padding and banned-token logits."""
     labels = tf.cast(labels, tf.int64)
     loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels, preds)
 
@@ -1120,6 +1217,7 @@ def masked_loss(labels, preds):
 
 
 def masked_acc(labels, preds):
+    """Token accuracy masked over padding positions."""
 
     mask = tf.cast(labels != 0, tf.float32)
     preds = tf.argmax(preds, axis=-1)
@@ -1136,6 +1234,8 @@ def masked_acc(labels, preds):
 
 # %%
 class GenerateText(tf.keras.callbacks.Callback):
+    """Callback that prints generated text samples at the end of each epoch."""
+
     def __init__(self):
         image_url = "https://drive.usercontent.google.com/download?id=1v_kXeI-ZNj6kjKYwYw9N9gg7f31JrE3U"
         image_path = tf.keras.utils.get_file("surf.jpg", origin=image_url)
@@ -1266,6 +1366,10 @@ plt.show()
 # %% [markdown]
 # ## Attention plots
 
+# ---------------------------------------------------------------------------
+# Attention visualization
+# ---------------------------------------------------------------------------
+
 # %%
 image = image_batch[0] / 255
 result = model.simple_gen(image, temperature=0.0)
@@ -1332,6 +1436,7 @@ import numpy as np
 
 
 def plot_attention_maps(image, str_tokens, attention_map):
+    """Plot decoder cross-attention maps over the source image."""
     num_tokens = len(str_tokens)
 
     # Adjust figure size to make everything bigger
@@ -1368,6 +1473,7 @@ plot_attention_maps(image, str_tokens, attention_maps)
 # %%
 @Captioner.add_method
 def run_and_show_attention(self, image, temperature=0.0):
+    """Generate text for an image and visualize the cross-attention maps."""
     result_txt = self.simple_gen(image, temperature)
     str_tokens = result_txt.split()
     str_tokens.append("[END]")
@@ -1398,7 +1504,9 @@ def run_and_show_attention(self, image, temperature=0.0):
 run_and_show_attention(model, image)
 
 # %%
-!unrar x -y "img.rar" "test/"
+# Notebook-exported replacement for:
+# !unrar x -y "img.rar" "test/"
+subprocess.run(["unrar", "x", "-y", "img.rar", "test/"], check=True)
 
 # %% [markdown]
 # ## Try it on your own images
@@ -1414,5 +1522,3 @@ run_and_show_attention(model, image)
 # r
 
 # run_and_show_attention(model, image)
-
-

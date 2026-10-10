@@ -1,0 +1,15 @@
+einops
+google-colab
+matplotlib
+numpy
+opencv-python
+pandas
+pillow
+psutil
+requests
+scipy
+tensorflow
+tensorflow-datasets
+tensorflow-hub
+tensorflow-text
+tqdm

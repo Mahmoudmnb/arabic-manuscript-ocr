@@ -1,3 +1,10 @@
+.venv/
+venv/
+.env
+.vscode/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.DS_Store
 *.venv
-*.vscode
 src/data/dataset.rar

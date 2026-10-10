@@ -273,14 +273,22 @@ arabic-manuscript-ocr/
 │
 ├── images/
 │
-├── OCR.py
-├── docTR.py
-├── filter_task.py
-├── hanning_blur_task.py
-├── hough_lines_task.py
-├── mexican_hat_task.py
-├── sift_task.py
-├── task.py
+├── experiments/
+│   ├── deep_learning/
+│   │   ├── AAHR.ipynb
+│   │   ├── image_captioning_EffNet.ipynb
+│   │   └── image_to_text_transformer_training.py
+│   │
+│   └── traditional_image_processing/
+│       ├── filter_comparison_experiment.py
+│       ├── hanning_blur_experiment.py
+│       ├── hough_line_detection_experiment.py
+│       ├── mexican_hat_filter_experiment.py
+│       ├── sift_feature_detection_experiment.py
+│       ├── static_threshold_resize_experiment.py
+│       └── thresholding_histogram_experiment.py
+│
+├── requirements.txt
 │
 ├── .gitignore
 └── README.md
