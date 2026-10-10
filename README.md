@@ -41,12 +41,12 @@ Several classical image-processing techniques were investigated for improving ma
 - Dynamic thresholding
 - Otsu binarization
 - Canny edge detection
-- Image filters
+- Image filtering
 - Hough transform
-- Mexican Hat filter
-- SIFT
-- FAST
-- DocEnTR
+- Mexican Hat filtering
+- SIFT feature detection
+- FAST feature detection
+- Document restoration experiments
 
 These approaches were useful for experimentation, but old manuscript images introduced difficult backgrounds, stains, faded ink, and other variations that made reliable text extraction challenging.
 
@@ -93,6 +93,8 @@ The project experimented with architectures including:
 - MobileNet
 - EfficientNet
 
+Because the manuscript images used a custom input shape, the visual feature extractor was trained for the manuscript data rather than relying only on an unchanged off-the-shelf image model.
+
 The manuscript images were processed as **line images** rather than complete manuscript pages. This helped reduce memory usage and computational requirements during training.
 
 ### Transformer Decoder
@@ -118,12 +120,12 @@ Because a suitable ready-to-use labeled dataset for this specific task was not a
 
 The project focused on **manuscript line images** rather than complete pages.
 
-The project aimed to collect approximately:
+The dataset preparation included approximately:
 
 - **20,000 manuscript line images**
 - **20,000 additional synthetic manuscript line images**
-
-The dataset was then subjected to preprocessing and augmentation before training.
+- Image preprocessing
+- Data augmentation
 
 ### Dataset Examples
 
@@ -138,6 +140,28 @@ The resulting image representation used dimensions of approximately:
 ```
 
 Working with line images made it more practical to train the image-to-text model than using complete manuscript pages.
+
+### Public Dataset
+
+The manuscript dataset prepared for this project is publicly available on Kaggle under:
+
+```text
+mahmoudbannan/manuscripts
+```
+
+It can be downloaded programmatically using `kagglehub`:
+
+```python
+import kagglehub
+
+path = kagglehub.dataset_download("mahmoudbannan/manuscripts")
+
+print("Path to dataset files:", path)
+```
+
+The dataset contains the manuscript data prepared for the experiments described in this repository.
+
+> The model's ability to generalize is still limited by the diversity of handwriting styles represented in the dataset.
 
 ---
 
@@ -171,21 +195,37 @@ Validation Accuracy: 96.23%
 
 This experiment showed a substantial improvement in validation performance compared with the reported MobileNet experiment.
 
-> These values are the reported results of the corresponding experiments. They should not be interpreted as a universal OCR accuracy or as a standardized character-level OCR metric.
+> These values are the reported results of the corresponding experiments. They should not be interpreted as universal OCR accuracy or as a standardized character-level OCR metric.
+
+---
+
+## 💾 Model Availability
+
+The repository includes the trained **CNN-based visual feature extractor** used in the project.
+
+The complete trained end-to-end image-to-text model — including the Transformer-based text-generation component — is unfortunately no longer available.
+
+As a result:
+
+- The trained CNN visual feature extractor is preserved.
+- The source code for the complete image-to-text architecture is preserved.
+- The training workflow is preserved.
+- The dataset used for the project is publicly available.
+- The final trained end-to-end model checkpoint is not available.
+
+Reproducing the complete OCR model therefore requires retraining the Transformer/image-to-text pipeline using the provided source code and dataset.
 
 ---
 
 ## 🔎 Attention Visualization
 
-The implementation also includes attention visualization to inspect which regions of the manuscript image contribute to the generation of output tokens.
-
-This provides an interpretable view of the relationship between the input image and generated text.
+The implementation includes attention visualization to inspect which regions of a manuscript image contribute to the generation of individual output tokens.
 
 <p align="center">
   <img src="docs/images/04-attention-visualization.png" alt="Attention visualization for Arabic manuscript image-to-text generation" width="95%">
 </p>
 
-The process can be viewed conceptually as:
+Conceptually:
 
 ```text
 Manuscript Image
@@ -197,7 +237,7 @@ Cross-Attention
 Generated Arabic Token
 ```
 
-Attention visualization was used during the experiments to better understand the behavior of the image-to-text model.
+Attention visualization was used during the experiments to better understand the behavior of the image-to-text model and the relationship between image regions and generated text.
 
 ---
 
@@ -207,20 +247,21 @@ The model is **not intended to recognize every style of Arabic handwriting**.
 
 Its performance depends strongly on the handwriting styles represented in the training data.
 
-Because the available dataset was limited in both **size and diversity**, the model generalized better to handwriting styles that were similar to those represented during training.
+Because the available dataset was limited in both **size and diversity**, the model generalized better to handwriting styles similar to those represented during training.
 
 As a result, performance can decrease significantly when the model encounters substantially different handwriting styles or manuscript sources.
 
 This limitation is one of the main challenges identified during the project.
 
-### Additional limitations
+### Additional Limitations
 
 - The dataset focused primarily on line-level images rather than complete manuscript pages.
 - The diversity of historical handwriting styles was limited.
 - The system is not a universal solution for all Arabic manuscripts.
 - Traditional word-segmentation approaches were unreliable for some manuscript layouts.
-- The project did not evaluate the system against a large standardized Arabic handwritten OCR benchmark.
-- The reported accuracy values come from the experiments performed during the project and are not equivalent to CER or WER.
+- The project was not evaluated against a large standardized Arabic handwritten OCR benchmark.
+- The reported experiment accuracy values are not equivalent to Character Error Rate (CER) or Word Error Rate (WER).
+- The complete trained end-to-end image-to-text checkpoint is no longer available.
 
 ---
 
@@ -237,6 +278,7 @@ Possible directions for improving the system include:
 - Supporting page-level manuscript processing
 - Exploring stronger vision-language architectures
 - Expanding attention-based interpretability and analysis
+- Retraining and preserving a complete end-to-end model checkpoint
 
 ---
 
@@ -252,14 +294,76 @@ Possible directions for improving the system include:
 - Deep Learning
 - Optical Character Recognition
 - Arabic Handwriting Recognition
+- KaggleHub
+
+---
+
+## 🚀 Getting Started
+
+### Clone the Repository
+
+```bash
+git clone https://github.com/Mahmoudmnb/arabic-manuscript-ocr.git
+cd arabic-manuscript-ocr
+```
+
+### Create a Virtual Environment
+
+```bash
+python -m venv .venv
+```
+
+Activate it on Linux/macOS:
+
+```bash
+source .venv/bin/activate
+```
+
+Or on Windows:
+
+```bash
+.venv\Scripts\activate
+```
+
+### Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### Download the Dataset
+
+The dataset can be downloaded using KaggleHub:
+
+```python
+import kagglehub
+
+path = kagglehub.dataset_download("mahmoudbannan/manuscripts")
+
+print("Dataset path:", path)
+```
+
+If `kagglehub` is not already installed:
+
+```bash
+pip install kagglehub
+```
+
+Update the dataset paths used by the experiment scripts or notebooks to point to the downloaded dataset location before running the training workflow.
+
+### Environment Notes
+
+The deep-learning experiments were originally developed using **Google Colab and Google Drive**.
+
+Some dataset paths and model-artifact paths are therefore environment-specific and may need to be adapted before running the training or inference workflow locally.
+
+The complete trained end-to-end model is not included, so full inference requires retraining the image-to-text model.
 
 ---
 
 ## 📂 Repository Structure
 
-The repository contains experimental implementations developed during different stages of the project.
-
-Some of the main files and directories include:
+The repository is organized to separate the final deep-learning experiments from the earlier traditional image-processing research.
 
 ```text
 arabic-manuscript-ocr/
@@ -271,9 +375,8 @@ arabic-manuscript-ocr/
 │       ├── 03-model-architecture.png
 │       └── 04-attention-visualization.png
 │
-├── images/
-│
 ├── experiments/
+│   │
 │   ├── deep_learning/
 │   │   ├── AAHR.ipynb
 │   │   ├── image_captioning_EffNet.ipynb
@@ -288,25 +391,49 @@ arabic-manuscript-ocr/
 │       ├── static_threshold_resize_experiment.py
 │       └── thresholding_histogram_experiment.py
 │
-├── requirements.txt
+├── images/
+│
+├── src/
+│   └── models/
+│       └── ...
 │
 ├── .gitignore
-└── README.md
+├── LICENSE
+├── README.md
+├── REFACTOR_NOTES.md
+└── requirements.txt
 ```
 
-These files represent different experiments and approaches explored during development, including traditional image processing and manuscript analysis.
+### `experiments/deep_learning/`
+
+Contains the main image-to-text experiments, including CNN-based visual feature extraction, Transformer decoding, training, inference, and attention visualization.
+
+### `experiments/traditional_image_processing/`
+
+Contains the earlier experimental approaches explored during the research process, including thresholding, filtering, Hough transforms, SIFT, and related manuscript-processing techniques.
+
+These experiments are intentionally preserved because they document the development path that eventually led to the deep-learning approach.
+
+### `src/models/`
+
+Contains the trained CNN-based visual feature extractor preserved from the original project.
+
+The complete trained image-to-text model checkpoint is no longer available. The repository retains the implementation required to reconstruct and retrain the complete architecture.
+
+### `docs/images/`
+
+Contains the images used to document the project and its results in this README.
 
 ---
 
 ## 🎓 Academic Context
 
-**Project:** Arabic Manuscript Restoration and Digitization Using Deep Learning
-
+**Project:** Arabic Manuscript Restoration and Digitization Using Deep Learning  
 **Institution:** University of Aleppo  
 **Faculty:** Faculty of Informatics Engineering  
 **Department:** Artificial Intelligence
 
-The project was developed as an academic exploration of computer vision and deep learning techniques for the restoration, recognition, and digitization of Arabic manuscripts.
+The project was developed as an academic exploration of computer vision and deep-learning techniques for the restoration, recognition, and digitization of Arabic manuscripts.
 
 ---
 
@@ -314,9 +441,25 @@ The project was developed as an academic exploration of computer vision and deep
 
 **Academic / Experimental Project**
 
-This repository contains the implementation and experiments developed during the project.
+This repository preserves the implementation, experiments, dataset references, trained CNN visual feature extractor, and research workflow developed during the project.
 
-It should be considered a research and learning project rather than a production-ready OCR system.
+It should be considered a **research and learning project rather than a production-ready OCR system**.
+
+The system performs best on handwriting styles similar to those represented in its training data and should not be interpreted as a universal Arabic handwriting-recognition solution.
+
+The manuscript dataset used by the project is publicly available on Kaggle as:
+
+```text
+mahmoudbannan/manuscripts
+```
+
+The repository also preserves the trained CNN visual feature extractor. However, the final trained end-to-end image-to-text model checkpoint is no longer available, so reproducing the complete model requires retraining the Transformer-based recognition pipeline.
+
+---
+
+## 📄 License
+
+This project is distributed under the terms described in the [`LICENSE`](LICENSE) file.
 
 ---
 
